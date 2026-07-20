@@ -581,6 +581,7 @@
     </div>
     <div class="nav-item" onclick="changeTab('visitas')">🏪 Visitas</div>
     <button class="logout-btn" onclick="exportAllData()">💾 Backup</button>
+    <button class="logout-btn" onclick="clearAllData()" style="background: rgba(255,0,0,0.2); border-color: #ff0000;">🗑️ Limpiar Datos</button>
     <button class="logout-btn" onclick="logout()">🔓 Salir</button>
   </div>
 
@@ -778,30 +779,64 @@
   let chart = null;
 
   function init() {
+    console.log('Inicializando sistema...');
     loadData();
+    console.log('Datos cargados. Usuarios:', data.users.length);
     checkAuth();
+    setupFileListeners();
+  }
+
+  function clearAllData() {
+    if (confirm('⚠️ ¿Estás seguro? Esto eliminará TODOS los usuarios, tareas y visitas.')) {
+      if (confirm('Esta acción NO se puede deshacer. ¿Confirmas?')) {
+        localStorage.removeItem('systemData');
+        data = { users: [], activities: [], visits: [] };
+        sessionStorage.removeItem('currentUser');
+        currentUser = null;
+        alert('✅ Todos los datos han sido eliminados. La página se recargará.');
+        location.reload();
+      }
+    }
   }
 
   function loadData() {
     try {
       const saved = localStorage.getItem('systemData');
       if (saved) {
-        data = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Validar estructura
+        if (parsed && parsed.users && Array.isArray(parsed.users)) {
+          data = parsed;
+          console.log('Datos cargados:', { usuarios: data.users.length, tareas: data.activities.length, visitas: data.visits.length });
+        } else {
+          console.warn('Datos corruptos, inicializando nuevos');
+          data = { users: [], activities: [], visits: [] };
+          saveData();
+        }
       } else {
         data = { users: [], activities: [], visits: [] };
+        console.log('No hay datos guardados, iniciando nuevos');
       }
     } catch (e) {
-      console.log('Error cargando datos:', e);
+      console.error('Error cargando datos:', e);
       data = { users: [], activities: [], visits: [] };
     }
   }
 
   function saveData() {
     try {
-      localStorage.setItem('systemData', JSON.stringify(data));
-      console.log('Datos guardados. Total usuarios:', data.users.length);
+      const json = JSON.stringify(data);
+      localStorage.setItem('systemData', json);
+      
+      // Verificar que se guardó
+      const verify = localStorage.getItem('systemData');
+      if (verify) {
+        const verified = JSON.parse(verify);
+        console.log('✅ Datos guardados correctamente. Usuarios:', verified.users.length, 'Tareas:', verified.activities.length);
+      }
     } catch (e) {
-      console.error('Error al guardar:', e);
+      console.error('❌ Error al guardar:', e);
+      alert('Error al guardar los datos');
     }
   }
 
@@ -915,24 +950,32 @@
   }
 
   function showApp() {
+    loadData(); // Recargar datos antes de mostrar la app
+    
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     document.getElementById('userNameDisplay').textContent = currentUser.name;
     document.getElementById('userRoleDisplay').textContent = `👤 ${currentUser.role.toUpperCase()}`;
     document.getElementById('userAreaDisplay').textContent = `📍 ${currentUser.area}`;
 
+    console.log('Usuario logueado:', currentUser.name, '- Rol:', currentUser.role);
+
     // Solo Director puede ver el panel de usuarios
     if (currentUser.role === 'director') {
       document.getElementById('directorMenu').style.display = 'block';
+      
+      // Actualizar inmediatamente
       renderDirectorDashboard();
       loadEmployeesForAdmin();
       renderUsersTable();
       
-      // Actualizar tabla cada 2 segundos
-      setInterval(() => {
-        loadData(); // Recargar datos del localStorage
-        renderUsersTable(); // Actualizar tabla
-      }, 2000);
+      // Actualizar tabla cada 1 segundo cuando estés en usuarios
+      window.userTableInterval = setInterval(() => {
+        loadData();
+        if (document.getElementById('usuarios').classList.contains('active')) {
+          renderUsersTable();
+        }
+      }, 1000);
     }
 
     renderDashboard();
@@ -956,10 +999,16 @@
     if (tabEl) tabEl.classList.add('active');
     if (event && event.target) event.target.classList.add('active');
     
+    // Cargar datos frescos antes de renderizar
+    loadData();
+    
     if (tab === 'dashboard') renderDashboard();
     if (tab === 'mis-tareas') renderMyTasks();
     if (tab === 'todas-tareas') renderAllTasks();
-    if (tab === 'usuarios') renderUsersTable();
+    if (tab === 'usuarios') {
+      console.log('Abriendo tab usuarios...');
+      renderUsersTable();
+    }
   }
 
   function openModal(id) {
@@ -1187,36 +1236,46 @@
     loadData(); // Recargar datos del localStorage primero
     const tbody = document.getElementById('users-table-body');
     
-    console.log('Renderizando usuarios. Total:', data.users.length);
-    console.log('Usuarios:', data.users.map(u => u.name + ' (' + u.email + ')'));
+    console.log('=== RENDERIZANDO TABLA DE USUARIOS ===');
+    console.log('Total usuarios en memoria:', data.users.length);
+    console.log('Usuarios:', data.users);
+    console.log('Elemento tbody encontrado:', !!tbody);
     
     if (!tbody) {
-      console.error('No se encontró users-table-body');
+      console.error('❌ ERROR: No se encontró elemento #users-table-body');
       return;
     }
     
     if (data.users.length === 0) {
+      console.warn('⚠️ No hay usuarios registrados');
       tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">No hay usuarios registrados</td></tr>';
       return;
     }
     
-    tbody.innerHTML = data.users.map(user => `
-      <tr>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${user.area}</td>
-        <td><strong>${user.role}</strong></td>
-        <td>
-          <select onchange="changeUserRole(${user.id}, this.value)" class="btn-edit" style="padding: 4px;">
-            <option value="">Cambiar...</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="gerente">Gerente</option>
-            <option value="director">Director</option>
-            <option value="administrador">Administrador</option>
-          </select>
-        </td>
-      </tr>
-    `).join('');
+    // Generar filas
+    let html = '';
+    data.users.forEach(user => {
+      html += `
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>${user.area}</td>
+          <td><strong>${user.role}</strong></td>
+          <td>
+            <select onchange="changeUserRole(${user.id}, this.value)" class="btn-edit" style="padding: 4px;">
+              <option value="">Cambiar...</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="gerente">Gerente</option>
+              <option value="director">Director</option>
+              <option value="administrador">Administrador</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+    
+    tbody.innerHTML = html;
+    console.log('✅ Tabla renderizada con ' + data.users.length + ' usuarios');
   }
 
   function changeUserRole(userId, newRole) {
