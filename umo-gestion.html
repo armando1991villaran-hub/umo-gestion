@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UMO Gestión - Sistema Empresarial</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #ffffff;
+      color: #000000;
+    }
+
+    /* ===== LOGIN SCREEN ===== */
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+    }
+    .auth-box {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      border: 2px solid #000000;
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo-container img {
+      max-width: 120px;
+      height: auto;
+    }
+    .auth-header h1 {
+      font-size: 28px;
+      color: #000000;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .auth-header p {
+      color: #666;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      color: #000000;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="file"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #000000;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      background: white;
+      color: #000000;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #000000;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: #000000;
+      color: white;
+      width: 100%;
+      border: 2px solid #000000;
+    }
+    .btn-primary:hover { 
+      background: #333333;
+      border-color: #333333;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn-danger {
+      background: #ff0000;
+      color: white;
+      border: 2px solid #ff0000;
+    }
+    .btn-danger:hover { 
+      background: #cc0000;
+      border-color: #cc0000;
+    }
+    
+    .auth-toggle {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #666;
+    }
+    .auth-toggle button {
+      background: none;
+      border: none;
+      color: #000000;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0;
+      width: auto;
+      text-decoration: underline;
+    }
+    .error-msg {
+      background: #ffcccc;
+      color: #cc0000;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 4px solid #cc0000;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    /* ===== MAIN APP ===== */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 260px;
+      height: 100vh;
+      background: #000000;
+      color: white;
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+    .sidebar-logo {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #ffffff;
+    }
+    .sidebar-logo img {
+      max-width: 80px;
+      height: auto;
+    }
+    .sidebar h2 { 
+      font-size: 14px; 
+      margin-bottom: 20px; 
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .user-badge {
+      background: rgba(255,255,255,0.1);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .user-badge strong { display: block; margin-bottom: 4px; color: #ffff00; }
+    .user-badge small { display: block; margin-bottom: 2px; }
+    .nav-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.active { 
+      background: rgba(255,255,255,0.2); 
+      border-left-color: #ffffff;
+    }
+    .logout-btn {
+      width: 100%;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .main-content {
+      margin-left: 260px;
+      padding: 30px;
+      min-height: 100vh;
+      background: #ffffff;
+    }
+    .header {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 2px solid #000000;
+    }
+    .header h1 { font-size: 26px; color: #000000; }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      border: 1px solid #e0e0e0;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .card-title { font-size: 18px; font-weight: 600; color: #000000; }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .metric {
+      background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      border: 2px solid #000000;
+    }
+    .metric-value { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+    .metric-label { font-size: 13px; opacity: 0.9; }
+    
+    .activity-card {
+      background: #f9f9f9;
+      border: 2px solid #000000;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-left: 5px solid #000000;
+    }
+    .activity-card.alta { border-left-color: #ff0000; background: #ffe6e6; }
+    .activity-card.media { border-left-color: #ff9900; background: #fff4e6; }
+    .activity-card.baja { border-left-color: #00aa00; background: #e6ffe6; }
+    
+    .activity-title {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 8px;
+      color: #000000;
+    }
+    .activity-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: #333;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #000000;
+      color: white;
+      border: 1px solid #000000;
+    }
+    .badge-alta { background: #ff0000; border-color: #ff0000; }
+    .badge-media { background: #ff9900; border-color: #ff9900; color: white; }
+    .badge-baja { background: #00aa00; border-color: #00aa00; }
+    
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #e0e0e0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 8px 0;
+      border: 1px solid #000000;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #000000;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      margin: auto;
+      animation: slideUp 0.3s ease;
+      border: 2px solid #000000;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 { font-size: 20px; color: #000000; }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #000000;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 20px 0;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: #f0f0f0;
+      color: #000000;
+      border: 1px solid #000000;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-danger-small {
+      background: #ff0000;
+      color: white;
+      border: 1px solid #ff0000;
+    }
+    .btn-disabled {
+      background: #ccc;
+      color: #666;
+      border: 1px solid #ccc;
+      cursor: not-allowed;
+    }
+
+    .admin-notice {
+      background: #ffffcc;
+      border: 2px solid #ffcc00;
+      color: #333;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .user-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    .user-table th {
+      background: #000000;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .user-table td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      font-size: 12px;
+    }
+    .user-table tr:hover {
+      background: #f5f5f5;
+    }
+    .btn-edit {
+      background: #0066ff;
+      color: white;
+      border: 1px solid #0066ff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 70px; }
+      .main-content { margin-left: 70px; padding: 20px; }
+      .header { flex-direction: column; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="authScreen" class="auth-container">
+  <div class="auth-box">
+    <!-- Login Form -->
+    <div id="loginForm">
+      <div class="logo-container">
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' style="width: 100px; height: 100px;">
+          <circle cx='100' cy='100' r='95' fill='none' stroke='#000' stroke-width='8'/>
+          <text x='100' y='120' font-size='50' font-weight='bold' text-anchor='middle' fill='#000'>UMO</text>
+        </svg>
+      </div>
+      <div class="auth-header">
+        <h1>UMO Gestión</h1>
+        <p>Sistema Empresarial Integral</p>
+      </div>
+      <div id="loginError"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="loginPassword" placeholder="Tu contraseña">
+      </div>
+      <button class="btn-primary" onclick="login()">Ingresar</button>
+      <div class="auth-toggle">
+        ¿No tienes cuenta? <button onclick="toggleAuth()">Regístrate</button>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" style="display: none;">
+      <div class="logo-container">
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' style="width: 100px; height: 100px;">
+          <circle cx='100' cy='100' r='95' fill='none' stroke='#000' stroke-width='8'/>
+          <text x='100' y='120' font-size='50' font-weight='bold' text-anchor='middle' fill='#000'>UMO</text>
+        </svg>
+      </div>
+      <div class="auth-header">
+        <h1>UMO Gestión</h1>
+        <p>Crear tu cuenta</p>
+      </div>
+      <div id="registerError"></div>
+      <div class="form-group">
+        <label>Nombre Completo</label>
+        <input type="text" id="regName" placeholder="Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres">
+      </div>
+      <div class="form-group">
+        <label>Confirmar Contraseña</label>
+        <input type="password" id="regPassword2" placeholder="Repite tu contraseña">
+      </div>
+      <div class="form-group">
+        <label>Área</label>
+        <select id="regArea">
+          <option value="gerencia">Gerencia</option>
+          <option value="bodega">Bodega</option>
+          <option value="administrativo">Administrativo</option>
+          <option value="contable">Contable</option>
+          <option value="direccion">Dirección</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select id="regRole">
+          <option value="supervisor">Supervisor</option>
+          <option value="gerente">Gerente</option>
+          <option value="director">Director</option>
+          <option value="administrador">Administrador</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="register()">Crear Cuenta</button>
+      <div class="auth-toggle">
+        ¿Ya tienes cuenta? <button onclick="toggleAuth()">Inicia sesión</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display: none;">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' style="width: 60px; height: 60px;">
+        <circle cx='100' cy='100' r='95' fill='none' stroke='white' stroke-width='8'/>
+        <text x='100' y='120' font-size='50' font-weight='bold' text-anchor='middle' fill='white'>UMO</text>
+      </svg>
+    </div>
+    <h2>Menú</h2>
+    <div class="user-badge">
+      <strong id="userNameDisplay">Usuario</strong>
+      <small id="userRoleDisplay">Rol</small>
+      <small id="userAreaDisplay">Area</small>
+    </div>
+    <div class="nav-item active" onclick="changeTab('dashboard')">📈 Dashboard</div>
+    <div class="nav-item" onclick="changeTab('crear-tarea')">➕ Crear Tarea</div>
+    <div class="nav-item" onclick="changeTab('mis-tareas')">📋 Mis Tareas</div>
+    <div id="directorMenu" style="display: none;">
+      <div class="nav-item" onclick="changeTab('todas-tareas')">👥 Ver Todas</div>
+      <div class="nav-item" onclick="changeTab('usuarios')">⚙️ Usuarios</div>
+    </div>
+    <div class="nav-item" onclick="changeTab('visitas')">🏪 Visitas</div>
+    <button class="logout-btn" onclick="exportAllData()">💾 Backup</button>
+    <button class="logout-btn" onclick="logout()">🔓 Salir</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <!-- HEADER -->
+    <div class="header">
+      <h1>UMO Gestión</h1>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+      <div id="directorDashboard"></div>
+      <div class="card">
+        <h2 class="card-title">📊 Mis Tareas</h2>
+        <div class="grid">
+          <div class="metric">
+            <div class="metric-value" id="total-activities">0</div>
+            <div class="metric-label">Asignadas</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="completed-activities">0</div>
+            <div class="metric-label">Completadas</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="total-visits">0</div>
+            <div class="metric-label">Visitas</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value" id="progress-pct">0%</div>
+            <div class="metric-label">Progreso</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">📈 Gráfico</h2>
+        <div class="chart-container">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREAR TAREA (todos) -->
+    <div id="crear-tarea" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Crear Nueva Tarea</h2>
+        </div>
+        <div class="form-group">
+          <label>Asignar a (opcional - si dejas en blanco es para ti)</label>
+          <select id="taskAssignTo">
+            <option value="">Para mí</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Título de la Tarea</label>
+          <input type="text" id="taskTitle" placeholder="Ej: Revisar inventario">
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea id="taskDesc" placeholder="Detalles de la tarea..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Prioridad</label>
+          <select id="taskPriority">
+            <option value="baja">🟢 Baja</option>
+            <option value="media">🟡 Media</option>
+            <option value="alta">🔴 Alta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fecha de Inicio</label>
+          <input type="date" id="taskStartDate">
+        </div>
+        <div class="form-group">
+          <label>Fecha de Entrega</label>
+          <input type="date" id="taskDueDate">
+        </div>
+        <div class="form-group">
+          <label>Área</label>
+          <select id="taskArea">
+            <option value="gerencia">Gerencia</option>
+            <option value="bodega">Bodega</option>
+            <option value="administrativo">Administrativo</option>
+            <option value="contable">Contable</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="createTask()">Crear Tarea</button>
+      </div>
+    </div>
+
+    <!-- MIS TAREAS -->
+    <div id="mis-tareas" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Mis Tareas</h2>
+        </div>
+        <div id="my-tasks-list"></div>
+      </div>
+    </div>
+
+    <!-- TODAS LAS TAREAS (solo director/admin) -->
+    <div id="todas-tareas" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Todas las Tareas del Sistema</h2>
+        </div>
+        <p style="color: #666; font-size: 13px; margin-bottom: 16px;">👁️ Ves todas las tareas del sistema</p>
+        <div id="all-tasks-list"></div>
+      </div>
+    </div>
+
+    <!-- PANEL DE USUARIOS (solo director) -->
+    <div id="usuarios" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚙️ Gestión de Usuarios</h2>
+        </div>
+        <div class="admin-notice">
+          👑 Solo Director puede cambiar roles
+        </div>
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Área</th>
+              <th>Rol Actual</th>
+              <th>Cambiar Rol</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VISITAS -->
+    <div id="visitas" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📝 Mis Visitas</h2>
+          <button class="btn-primary" onclick="openModal('visitModal')" style="width: auto; padding: 8px 16px;">+ Nueva</button>
+        </div>
+        <div id="visits-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Visit Modal -->
+<div id="visitModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Nueva Visita a Tienda</h2>
+      <button class="modal-close" onclick="closeModal('visitModal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Nombre de la Tienda</label>
+      <input type="text" id="visitStore" placeholder="Tienda Centro">
+    </div>
+    <div class="form-group">
+      <label>Fecha</label>
+      <input type="date" id="visitDate">
+    </div>
+    <div class="form-group">
+      <label>Observaciones</label>
+      <textarea id="visitNotes" placeholder="Escribe tus observaciones..." style="min-height: 100px;"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveVisit()">Guardar</button>
+  </div>
+</div>
+
+<script>
+  const GOOGLE_CLIENT_ID = '417972517229-b5v8mmth5mesovgefl63igmu631ij5jv.apps.google';
+
+  let currentUser = null;
+  let data = {
+    users: [],
+    activities: [],
+    visits: []
+  };
+  let chart = null;
+
+  function init() {
+    loadData();
+    checkAuth();
+  }
+
+  function loadData() {
+    try {
+      const saved = localStorage.getItem('systemData');
+      if (saved) {
+        data = JSON.parse(saved);
+      } else {
+        data = { users: [], activities: [], visits: [] };
+      }
+    } catch (e) {
+      console.log('Primera vez');
+    }
+  }
+
+  function saveData() {
+    try {
+      localStorage.setItem('systemData', JSON.stringify(data));
+    } catch (e) {
+      console.error('Error al guardar:', e);
+    }
+  }
+
+  // ===== AUTENTICACIÓN =====
+  function toggleAuth() {
+    document.getElementById('loginForm').style.display = document.getElementById('loginForm').style.display === 'none' ? 'block' : 'none';
+    document.getElementById('registerForm').style.display = document.getElementById('registerForm').style.display === 'none' ? 'block' : 'none';
+    clearAuthErrors();
+  }
+
+  function register() {
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const pass1 = document.getElementById('regPassword').value;
+    const pass2 = document.getElementById('regPassword2').value;
+    const area = document.getElementById('regArea').value;
+    const role = document.getElementById('regRole').value;
+    const errDiv = document.getElementById('registerError');
+
+    errDiv.innerHTML = '';
+
+    if (!name.trim() || !email.trim() || !pass1 || !pass2) {
+      errDiv.innerHTML = '<div class="error-msg">Completa todos los campos</div>';
+      return;
+    }
+
+    if (pass1.length < 6) {
+      errDiv.innerHTML = '<div class="error-msg">Mínimo 6 caracteres</div>';
+      return;
+    }
+
+    if (pass1 !== pass2) {
+      errDiv.innerHTML = '<div class="error-msg">Las contraseñas no coinciden</div>';
+      return;
+    }
+
+    if (data.users.find(u => u.email === email)) {
+      errDiv.innerHTML = '<div class="error-msg">Email ya registrado</div>';
+      return;
+    }
+
+    data.users.push({
+      id: Date.now(),
+      name: name,
+      email: email,
+      password: pass1,
+      area: area,
+      role: role,
+      createdAt: new Date().toISOString()
+    });
+
+    saveData();
+    errDiv.innerHTML = '<div style="background: #ccffcc; color: #006600; padding: 12px; border-radius: 6px; font-size: 13px;">✅ Cuenta creada. Inicia sesión.</div>';
+    
+    setTimeout(() => {
+      clearAuthErrors();
+      toggleAuth();
+    }, 1500);
+  }
+
+  function login() {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPassword').value;
+    const errDiv = document.getElementById('loginError');
+
+    errDiv.innerHTML = '';
+
+    if (!email || !pass) {
+      errDiv.innerHTML = '<div class="error-msg">Ingresa email y contraseña</div>';
+      return;
+    }
+
+    const user = data.users.find(u => u.email === email && u.password === pass);
+
+    if (!user) {
+      errDiv.innerHTML = '<div class="error-msg">Credenciales inválidas</div>';
+      return;
+    }
+
+    currentUser = user;
+    sessionStorage.setItem('currentUser', JSON.stringify(user));
+    showApp();
+  }
+
+  function logout() {
+    if (confirm('¿Cerrar sesión?')) {
+      currentUser = null;
+      sessionStorage.removeItem('currentUser');
+      showAuth();
+    }
+  }
+
+  function checkAuth() {
+    const saved = sessionStorage.getItem('currentUser');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      showApp();
+    } else {
+      showAuth();
+    }
+  }
+
+  function showAuth() {
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+  }
+
+  function showApp() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('userNameDisplay').textContent = currentUser.name;
+    document.getElementById('userRoleDisplay').textContent = `👤 ${currentUser.role.toUpperCase()}`;
+    document.getElementById('userAreaDisplay').textContent = `📍 ${currentUser.area}`;
+
+    // Solo Director puede ver el panel de usuarios
+    if (currentUser.role === 'director') {
+      document.getElementById('directorMenu').style.display = 'block';
+      renderDirectorDashboard();
+      loadEmployeesForAdmin();
+      renderUsersTable();
+    }
+
+    renderDashboard();
+    renderMyTasks();
+    renderVisits();
+  }
+
+  function clearAuthErrors() {
+    document.getElementById('loginError').innerHTML = '';
+    document.getElementById('registerError').innerHTML = '';
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
+  }
+
+  // ===== NAVEGACIÓN =====
+  function changeTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    const tabEl = document.getElementById(tab);
+    if (tabEl) tabEl.classList.add('active');
+    if (event && event.target) event.target.classList.add('active');
+    
+    if (tab === 'dashboard') renderDashboard();
+    if (tab === 'mis-tareas') renderMyTasks();
+    if (tab === 'todas-tareas') renderAllTasks();
+    if (tab === 'usuarios') renderUsersTable();
+  }
+
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('active');
+  }
+
+  window.onclick = function(e) {
+    if (e.target.classList.contains('modal')) {
+      e.target.classList.remove('active');
+    }
+  };
+
+  // ===== CREAR TAREA (todos) =====
+  function loadEmployeesForAdmin() {
+    const select = document.getElementById('taskAssignTo');
+    select.innerHTML = '<option value="">Para mí</option>';
+    
+    data.users.forEach(user => {
+      const option = document.createElement('option');
+      option.value = user.id;
+      option.textContent = `${user.name} (${user.area})`;
+      select.appendChild(option);
+    });
+  }
+
+  function createTask() {
+    const title = document.getElementById('taskTitle').value;
+    const desc = document.getElementById('taskDesc').value;
+    const priority = document.getElementById('taskPriority').value;
+    const startDate = document.getElementById('taskStartDate').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const area = document.getElementById('taskArea').value;
+    const assignTo = document.getElementById('taskAssignTo').value;
+
+    if (!title.trim() || !desc.trim()) {
+      alert('Completa título y descripción');
+      return;
+    }
+
+    if (!startDate || !dueDate) {
+      alert('Agrega fechas de inicio y entrega');
+      return;
+    }
+
+    const userId = assignTo ? parseInt(assignTo) : currentUser.id;
+    const employee = data.users.find(u => u.id === userId);
+
+    data.activities.push({
+      id: Date.now(),
+      userId: userId,
+      userName: employee.name,
+      title: title,
+      desc: desc,
+      priority: priority,
+      startDate: startDate,
+      dueDate: dueDate,
+      area: area,
+      progress: 0,
+      createdBy: currentUser.name,
+      created: new Date().toISOString()
+    });
+
+    saveData();
+    
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDesc').value = '';
+    document.getElementById('taskPriority').value = 'baja';
+    document.getElementById('taskStartDate').value = '';
+    document.getElementById('taskDueDate').value = '';
+    document.getElementById('taskArea').value = 'gerencia';
+    document.getElementById('taskAssignTo').value = '';
+
+    alert(`✅ Tarea creada${assignTo ? ` para ${employee.name}` : ''}`);
+    renderMyTasks();
+    renderDashboard();
+  }
+
+  function renderMyTasks() {
+    const container = document.getElementById('my-tasks-list');
+    const myTasks = data.activities.filter(a => a.userId === currentUser.id);
+
+    container.innerHTML = myTasks.length === 0 
+      ? '<p style="color: #999; text-align: center; padding: 20px;">No hay tareas</p>'
+      : myTasks.map(task => `
+        <div class="activity-card ${task.priority}">
+          <div class="activity-title">${task.title}</div>
+          <div class="activity-meta">
+            <span class="badge badge-${task.priority}">🔥 ${task.priority.toUpperCase()}</span>
+            <span class="badge">${task.area}</span>
+            <span style="font-size: 11px; color: #666;">Por: ${task.createdBy}</span>
+          </div>
+          <div style="font-size: 11px; color: #999; margin-bottom: 8px;">
+            📅 Inicio: ${task.startDate} | Entrega: ${task.dueDate}
+          </div>
+          <div style="font-size: 13px; color: #333; margin-bottom: 8px;">${task.desc}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${task.progress}%"></div>
+          </div>
+          <input type="range" min="0" max="100" value="${task.progress}" 
+            onchange="updateProgress(${task.id}, this.value)" style="width: 100%; margin-top: 8px;">
+          <div class="action-buttons">
+            <button class="btn-small btn-danger-small" onclick="deleteTask(${task.id})">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+  }
+
+  function renderAllTasks() {
+    const container = document.getElementById('all-tasks-list');
+    const groupedByUser = {};
+    
+    data.activities.forEach(task => {
+      if (!groupedByUser[task.userId]) {
+        groupedByUser[task.userId] = [];
+      }
+      groupedByUser[task.userId].push(task);
+    });
+
+    let html = '';
+    Object.keys(groupedByUser).forEach(userId => {
+      const user = data.users.find(u => u.id === parseInt(userId));
+      const tasks = groupedByUser[userId];
+      const completed = tasks.filter(t => t.progress === 100).length;
+
+      html += `
+        <div style="margin-bottom: 20px; border: 2px solid #000; padding: 16px; border-radius: 8px;">
+          <h3 style="margin-bottom: 8px; color: #000;">${user.name} (${user.area})</h3>
+          <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
+            Completadas: ${completed}/${tasks.length}
+          </div>
+      `;
+
+      tasks.forEach(task => {
+        html += `
+          <div class="activity-card ${task.priority}" style="margin-bottom: 8px;">
+            <div class="activity-title">${task.title}</div>
+            <div class="activity-meta">
+              <span class="badge badge-${task.priority}">🔥 ${task.priority.toUpperCase()}</span>
+              <span>${task.progress}%</span>
+            </div>
+            <div style="font-size: 11px; color: #999;">
+              📅 ${task.startDate} → ${task.dueDate}
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${task.progress}%"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+    });
+
+    container.innerHTML = html || '<p style="color: #999;">No hay tareas</p>';
+  }
+
+  function updateProgress(id, value) {
+    const task = data.activities.find(a => a.id === id);
+    if (task && task.userId === currentUser.id) {
+      task.progress = parseInt(value);
+      saveData();
+      renderMyTasks();
+      renderDashboard();
+    }
+  }
+
+  function deleteTask(id) {
+    // Director y Admin pueden borrar cualquier tarea, otros solo las suyas
+    const task = data.activities.find(a => a.id === id);
+    
+    if (!task) return;
+    
+    // Solo permitir si es su tarea O si es Director/Admin
+    if (task.userId !== currentUser.id && currentUser.role !== 'administrador' && currentUser.role !== 'director') {
+      alert('❌ Solo puedes borrar tus propias tareas');
+      return;
+    }
+
+    if (confirm('¿Eliminar tarea?')) {
+      data.activities = data.activities.filter(a => a.id !== id);
+      saveData();
+      renderMyTasks();
+      if (currentUser.role === 'director') {
+        renderAllTasks();
+      }
+      renderDashboard();
+    }
+  }
+
+  // ===== PANEL DE USUARIOS =====
+  function renderUsersTable() {
+    const tbody = document.getElementById('users-table-body');
+    
+    tbody.innerHTML = data.users.map(user => `
+      <tr>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+        <td>${user.area}</td>
+        <td><strong>${user.role}</strong></td>
+        <td>
+          <select onchange="changeUserRole(${user.id}, this.value)" class="btn-edit" style="padding: 4px;">
+            <option value="">Cambiar...</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="gerente">Gerente</option>
+            <option value="director">Director</option>
+            <option value="administrador">Administrador</option>
+          </select>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function changeUserRole(userId, newRole) {
+    if (!newRole) return;
+    
+    // Solo director puede cambiar roles
+    if (currentUser.role !== 'director') {
+      alert('❌ Solo Director puede cambiar roles');
+      renderUsersTable();
+      return;
+    }
+    
+    const user = data.users.find(u => u.id === userId);
+    if (!user) return;
+
+    const oldRole = user.role;
+    user.role = newRole;
+    saveData();
+
+    alert(`✅ Rol de ${user.name} cambió de ${oldRole} a ${newRole}`);
+    renderUsersTable();
+  }
+
+  // ===== DASHBOARD =====
+  function renderDirectorDashboard() {
+    const container = document.getElementById('directorDashboard');
+    const totalUsers = data.users.length;
+    const totalTasks = data.activities.length;
+    const completedTasks = data.activities.filter(a => a.progress === 100).length;
+
+    container.innerHTML = `
+      <div class="admin-notice">
+        👑 Panel de Director - Total: ${totalUsers} usuarios, ${totalTasks} tareas
+      </div>
+      <div class="grid">
+        <div class="metric">
+          <div class="metric-value">${totalUsers}</div>
+          <div class="metric-label">Empleados</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${totalTasks}</div>
+          <div class="metric-label">Tareas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${completedTasks}</div>
+          <div class="metric-label">Completadas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%</div>
+          <div class="metric-label">Progreso</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDashboard() {
+    const myTasks = data.activities.filter(a => a.userId === currentUser.id);
+    const completed = myTasks.filter(a => a.progress === 100).length;
+    const pct = myTasks.length > 0 ? Math.round((completed / myTasks.length) * 100) : 0;
+    
+    document.getElementById('total-activities').textContent = myTasks.length;
+    document.getElementById('completed-activities').textContent = completed;
+    document.getElementById('total-visits').textContent = data.visits.filter(v => v.userId === currentUser.id).length;
+    document.getElementById('progress-pct').textContent = pct + '%';
+
+    drawChart(myTasks);
+  }
+
+  function drawChart(tasks) {
+    const ctx = document.getElementById('mainChart');
+    if (!ctx) return;
+
+    if (chart) chart.destroy();
+
+    const byStatus = {
+      completed: tasks.filter(a => a.progress === 100).length,
+      inProgress: tasks.filter(a => a.progress > 0 && a.progress < 100).length,
+      pending: tasks.filter(a => a.progress === 0).length
+    };
+
+    chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Completadas', 'En Progreso', 'Pendientes'],
+        datasets: [{
+          data: [byStatus.completed, byStatus.inProgress, byStatus.pending],
+          backgroundColor: ['#000000', '#666666', '#cccccc']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  // ===== VISITAS =====
+  function saveVisit() {
+    const store = document.getElementById('visitStore').value;
+    const notes = document.getElementById('visitNotes').value;
+    
+    if (!store.trim() || !notes.trim()) {
+      alert('Completa todos los campos');
+      return;
+    }
+
+    data.visits.push({
+      id: Date.now(),
+      userId: currentUser.id,
+      userName: currentUser.name,
+      store: store,
+      area: currentUser.area,
+      date: document.getElementById('visitDate').value,
+      notes: notes,
+      created: new Date().toISOString()
+    });
+
+    saveData();
+    closeModal('visitModal');
+    document.getElementById('visitStore').value = '';
+    document.getElementById('visitDate').value = '';
+    document.getElementById('visitNotes').value = '';
+    renderVisits();
+  }
+
+  function renderVisits() {
+    const container = document.getElementById('visits-list');
+    const myVisits = data.visits.filter(v => v.userId === currentUser.id);
+
+    container.innerHTML = myVisits.length === 0
+      ? '<p style="color: #999; text-align: center; padding: 20px;">No hay visitas</p>'
+      : myVisits.sort((a, b) => new Date(b.created) - new Date(a.created)).map(v => `
+        <div style="background: #f0f0f0; border: 2px solid #000; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+          <div style="font-weight: 600; color: #000; margin-bottom: 8px;">🏪 ${v.store}</div>
+          <div style="color: #333; margin-bottom: 8px;">${v.notes}</div>
+          <div style="font-size: 11px; color: #666;">Fecha: ${v.date}</div>
+          <div class="action-buttons">
+            <button class="btn-small btn-danger-small" onclick="deleteVisit(${v.id})">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+  }
+
+  function deleteVisit(id) {
+    if (confirm('¿Eliminar?')) {
+      data.visits = data.visits.filter(v => v.id !== id);
+      saveData();
+      renderVisits();
+    }
+  }
+
+  function exportAllData() {
+    try {
+      const backup = {
+        exportedAt: new Date().toLocaleString(),
+        exportedBy: currentUser.name,
+        data: data
+      };
+
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_UMO_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      alert('✅ Backup descargado');
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
