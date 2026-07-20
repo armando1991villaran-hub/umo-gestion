@@ -439,6 +439,28 @@
       font-size: 11px;
     }
 
+    .file-preview {
+      background: #f5f5f5;
+      border: 1px dashed #000;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    .file-item {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-item:last-child {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 768px) {
       .sidebar { width: 70px; }
       .main-content { margin-left: 70px; padding: 20px; }
@@ -647,6 +669,11 @@
             <option value="contable">Contable</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Archivos/Fotos</label>
+          <input type="file" id="taskFiles" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+          <div id="taskFilesList" class="file-preview"></div>
+        </div>
         <button class="btn-primary" onclick="createTask()">Crear Tarea</button>
       </div>
     </div>
@@ -730,6 +757,11 @@
       <label>Observaciones</label>
       <textarea id="visitNotes" placeholder="Escribe tus observaciones..." style="min-height: 100px;"></textarea>
     </div>
+    <div class="form-group">
+      <label>Fotos/Documentos</label>
+      <input type="file" id="visitFiles" multiple accept="image/*,.pdf,.doc,.docx">
+      <div id="visitFilesList" class="file-preview"></div>
+    </div>
     <button class="btn-primary" onclick="saveVisit()">Guardar</button>
   </div>
 </div>
@@ -809,7 +841,7 @@
       return;
     }
 
-    data.users.push({
+    const newUser = {
       id: Date.now(),
       name: name,
       email: email,
@@ -817,10 +849,15 @@
       area: area,
       role: role,
       createdAt: new Date().toISOString()
-    });
+    };
 
-    saveData();
-    errDiv.innerHTML = '<div style="background: #ccffcc; color: #006600; padding: 12px; border-radius: 6px; font-size: 13px;">✅ Cuenta creada. Inicia sesión.</div>';
+    data.users.push(newUser);
+    saveData(); // Guardar en localStorage
+    
+    console.log('Usuario registrado:', newUser);
+    console.log('Total de usuarios:', data.users.length);
+    
+    errDiv.innerHTML = '<div style="background: #ccffcc; color: #006600; padding: 12px; border-radius: 6px; font-size: 13px; border-left: 4px solid #006600;">✅ Cuenta creada. Inicia sesión.</div>';
     
     setTimeout(() => {
       clearAuthErrors();
@@ -888,6 +925,12 @@
       renderDirectorDashboard();
       loadEmployeesForAdmin();
       renderUsersTable();
+      
+      // Actualizar tabla cada 2 segundos
+      setInterval(() => {
+        loadData(); // Recargar datos del localStorage
+        renderUsersTable(); // Actualizar tabla
+      }, 2000);
     }
 
     renderDashboard();
@@ -968,6 +1011,18 @@
     const userId = assignTo ? parseInt(assignTo) : currentUser.id;
     const employee = data.users.find(u => u.id === userId);
 
+    // Capturar archivos
+    const files = document.getElementById('taskFiles').files;
+    const filesList = [];
+    
+    for (let file of files) {
+      filesList.push({
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+    }
+
     data.activities.push({
       id: Date.now(),
       userId: userId,
@@ -979,6 +1034,7 @@
       dueDate: dueDate,
       area: area,
       progress: 0,
+      files: filesList,
       createdBy: currentUser.name,
       created: new Date().toISOString()
     });
@@ -992,6 +1048,8 @@
     document.getElementById('taskDueDate').value = '';
     document.getElementById('taskArea').value = 'gerencia';
     document.getElementById('taskAssignTo').value = '';
+    document.getElementById('taskFiles').value = '';
+    document.getElementById('taskFilesList').innerHTML = '';
 
     alert(`✅ Tarea creada${assignTo ? ` para ${employee.name}` : ''}`);
     renderMyTasks();
@@ -1016,6 +1074,11 @@
             📅 Inicio: ${task.startDate} | Entrega: ${task.dueDate}
           </div>
           <div style="font-size: 13px; color: #333; margin-bottom: 8px;">${task.desc}</div>
+          ${task.files && task.files.length > 0 ? `
+            <div class="file-preview">
+              ${task.files.map(f => `<div class="file-item">📎 ${f.name} (${(f.size / 1024).toFixed(0)}KB)</div>`).join('')}
+            </div>
+          ` : ''}
           <div class="progress-bar" style="position: relative;">
             <div class="progress-fill" style="width: ${task.progress}%"></div>
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #000; z-index: 10;">${task.progress}%</div>
@@ -1173,21 +1236,135 @@
         👑 Panel de Director - Total: ${totalUsers} usuarios, ${totalTasks} tareas
       </div>
       <div class="grid">
-        <div class="metric">
+        <div class="metric" style="cursor: pointer;" onclick="showEmployeesDetail()">
           <div class="metric-value">${totalUsers}</div>
           <div class="metric-label">Empleados</div>
         </div>
-        <div class="metric">
+        <div class="metric" style="cursor: pointer;" onclick="showAllTasksDetail()">
           <div class="metric-value">${totalTasks}</div>
           <div class="metric-label">Tareas</div>
         </div>
-        <div class="metric">
+        <div class="metric" style="cursor: pointer;" onclick="showCompletedDetail()">
           <div class="metric-value">${completedTasks}</div>
           <div class="metric-label">Completadas</div>
         </div>
-        <div class="metric">
+        <div class="metric" style="cursor: pointer;" onclick="showProgressDetail()">
           <div class="metric-value">${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%</div>
           <div class="metric-label">Progreso</div>
+        </div>
+      </div>
+      <div id="dashboardDetail" style="margin-top: 20px;"></div>
+    `;
+  }
+
+  function showEmployeesDetail() {
+    const detail = document.getElementById('dashboardDetail');
+    detail.innerHTML = `
+      <div class="card">
+        <h2 class="card-title">👥 Lista de Empleados</h2>
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Área</th>
+              <th>Rol</th>
+              <th>Tareas</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.users.map(user => {
+              const userTasks = data.activities.filter(a => a.userId === user.id);
+              return `
+                <tr>
+                  <td>${user.name}</td>
+                  <td>${user.email}</td>
+                  <td>${user.area}</td>
+                  <td>${user.role}</td>
+                  <td>${userTasks.length}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function showAllTasksDetail() {
+    const detail = document.getElementById('dashboardDetail');
+    detail.innerHTML = `
+      <div class="card">
+        <h2 class="card-title">📋 Todas las Tareas</h2>
+        <div id="all-tasks-detail"></div>
+      </div>
+    `;
+    renderAllTasks();
+    const allTasksContainer = document.getElementById('all-tasks-list');
+    if (allTasksContainer) {
+      document.getElementById('all-tasks-detail').innerHTML = allTasksContainer.innerHTML;
+    }
+  }
+
+  function showCompletedDetail() {
+    const detail = document.getElementById('dashboardDetail');
+    const completedTasks = data.activities.filter(a => a.progress === 100);
+    
+    detail.innerHTML = `
+      <div class="card">
+        <h2 class="card-title">✅ Tareas Completadas (${completedTasks.length})</h2>
+        ${completedTasks.length === 0 ? '<p style="color: #999; text-align: center;">No hay tareas completadas</p>' : ''}
+        ${completedTasks.map(task => {
+          const user = data.users.find(u => u.id === task.userId);
+          return `
+            <div class="activity-card ${task.priority}" style="margin-bottom: 12px;">
+              <div class="activity-title">${task.title}</div>
+              <div class="activity-meta">
+                <span class="badge">${user ? user.name : 'Desconocido'}</span>
+                <span class="badge badge-${task.priority}">🔥 ${task.priority.toUpperCase()}</span>
+              </div>
+              <div style="font-size: 11px; color: #999;">
+                📅 ${task.startDate} → ${task.dueDate}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function showProgressDetail() {
+    const detail = document.getElementById('dashboardDetail');
+    const totalTasks = data.activities.length;
+    const completed = data.activities.filter(a => a.progress === 100).length;
+    const inProgress = data.activities.filter(a => a.progress > 0 && a.progress < 100).length;
+    const pending = data.activities.filter(a => a.progress === 0).length;
+    
+    detail.innerHTML = `
+      <div class="card">
+        <h2 class="card-title">📊 Progreso General</h2>
+        <div style="margin: 20px 0;">
+          <div style="margin-bottom: 20px;">
+            <div style="font-weight: 600; margin-bottom: 8px;">Completadas: ${completed}/${totalTasks}</div>
+            <div class="progress-bar" style="position: relative; height: 20px;">
+              <div class="progress-fill" style="width: ${totalTasks > 0 ? (completed / totalTasks) * 100 : 0}%; height: 100%;"></div>
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #000;">${totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0}%</div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
+            <div style="background: #000; color: white; padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold;">${completed}</div>
+              <div style="font-size: 12px;">Completadas</div>
+            </div>
+            <div style="background: #666; color: white; padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold;">${inProgress}</div>
+              <div style="font-size: 12px;">En Progreso</div>
+            </div>
+            <div style="background: #ccc; color: #000; padding: 16px; border-radius: 8px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold;">${pending}</div>
+              <div style="font-size: 12px;">Pendientes</div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -1196,14 +1373,58 @@
   function renderDashboard() {
     const myTasks = data.activities.filter(a => a.userId === currentUser.id);
     const completed = myTasks.filter(a => a.progress === 100).length;
+    const myVisits = data.visits.filter(v => v.userId === currentUser.id);
     const pct = myTasks.length > 0 ? Math.round((completed / myTasks.length) * 100) : 0;
     
     document.getElementById('total-activities').textContent = myTasks.length;
     document.getElementById('completed-activities').textContent = completed;
-    document.getElementById('total-visits').textContent = data.visits.filter(v => v.userId === currentUser.id).length;
+    document.getElementById('total-visits').textContent = myVisits.length;
     document.getElementById('progress-pct').textContent = pct + '%';
 
+    // Hacer clickeables los botones
+    document.getElementById('total-activities').parentElement.parentElement.style.cursor = 'pointer';
+    document.getElementById('total-activities').parentElement.parentElement.onclick = () => changeTab('mis-tareas');
+    
+    document.getElementById('completed-activities').parentElement.parentElement.style.cursor = 'pointer';
+    document.getElementById('completed-activities').parentElement.parentElement.onclick = () => showCompletedTasks();
+    
+    document.getElementById('total-visits').parentElement.parentElement.style.cursor = 'pointer';
+    document.getElementById('total-visits').parentElement.parentElement.onclick = () => changeTab('visitas');
+
     drawChart(myTasks);
+  }
+
+  function showCompletedTasks() {
+    const myTasks = data.activities.filter(a => a.userId === currentUser.id);
+    const completed = myTasks.filter(a => a.progress === 100);
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>✅ Mis Tareas Completadas (${completed.length})</h2>
+          <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+        </div>
+        ${completed.length === 0 ? '<p style="color: #999; text-align: center;">No hay tareas completadas</p>' : ''}
+        ${completed.map(task => `
+          <div class="activity-card ${task.priority}" style="margin-bottom: 12px;">
+            <div class="activity-title">${task.title}</div>
+            <div class="activity-meta">
+              <span class="badge badge-${task.priority}">🔥 ${task.priority.toUpperCase()}</span>
+              <span>${task.progress}%</span>
+            </div>
+            <div style="font-size: 11px; color: #999;">
+              📅 ${task.startDate} → ${task.dueDate}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
   }
 
   function drawChart(tasks) {
@@ -1244,6 +1465,18 @@
       return;
     }
 
+    // Capturar archivos
+    const files = document.getElementById('visitFiles').files;
+    const filesList = [];
+    
+    for (let file of files) {
+      filesList.push({
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+    }
+
     data.visits.push({
       id: Date.now(),
       userId: currentUser.id,
@@ -1252,6 +1485,7 @@
       area: currentUser.area,
       date: document.getElementById('visitDate').value,
       notes: notes,
+      files: filesList,
       created: new Date().toISOString()
     });
 
@@ -1260,6 +1494,8 @@
     document.getElementById('visitStore').value = '';
     document.getElementById('visitDate').value = '';
     document.getElementById('visitNotes').value = '';
+    document.getElementById('visitFiles').value = '';
+    document.getElementById('visitFilesList').innerHTML = '';
     renderVisits();
   }
 
@@ -1273,6 +1509,11 @@
         <div style="background: #f0f0f0; border: 2px solid #000; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
           <div style="font-weight: 600; color: #000; margin-bottom: 8px;">🏪 ${v.store}</div>
           <div style="color: #333; margin-bottom: 8px;">${v.notes}</div>
+          ${v.files && v.files.length > 0 ? `
+            <div class="file-preview">
+              ${v.files.map(f => `<div class="file-item">📎 ${f.name} (${(f.size / 1024).toFixed(0)}KB)</div>`).join('')}
+            </div>
+          ` : ''}
           <div style="font-size: 11px; color: #666;">Fecha: ${v.date}</div>
           <div class="action-buttons">
             <button class="btn-small btn-danger-small" onclick="deleteVisit(${v.id})">Eliminar</button>
