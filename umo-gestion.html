@@ -791,13 +791,15 @@
         data = { users: [], activities: [], visits: [] };
       }
     } catch (e) {
-      console.log('Primera vez');
+      console.log('Error cargando datos:', e);
+      data = { users: [], activities: [], visits: [] };
     }
   }
 
   function saveData() {
     try {
       localStorage.setItem('systemData', JSON.stringify(data));
+      console.log('Datos guardados. Total usuarios:', data.users.length);
     } catch (e) {
       console.error('Error al guardar:', e);
     }
@@ -1075,8 +1077,13 @@
           </div>
           <div style="font-size: 13px; color: #333; margin-bottom: 8px;">${task.desc}</div>
           ${task.files && task.files.length > 0 ? `
-            <div class="file-preview">
-              ${task.files.map(f => `<div class="file-item">📎 ${f.name} (${(f.size / 1024).toFixed(0)}KB)</div>`).join('')}
+            <div style="background: #fff9e6; border: 1px solid #ffcc00; border-radius: 6px; padding: 8px; margin-top: 8px;">
+              <div style="font-weight: 500; font-size: 12px; margin-bottom: 6px;">📎 Archivos adjuntos:</div>
+              ${task.files.map(f => `
+                <div style="background: white; padding: 6px 8px; margin: 4px 0; border-radius: 4px; font-size: 11px; border-left: 3px solid #ffcc00;">
+                  📄 ${f.name} (${(f.size / 1024).toFixed(0)}KB)
+                </div>
+              `).join('')}
             </div>
           ` : ''}
           <div class="progress-bar" style="position: relative;">
@@ -1177,10 +1184,19 @@
 
   // ===== PANEL DE USUARIOS =====
   function renderUsersTable() {
+    loadData(); // Recargar datos del localStorage primero
     const tbody = document.getElementById('users-table-body');
     
+    console.log('Renderizando usuarios. Total:', data.users.length);
+    console.log('Usuarios:', data.users.map(u => u.name + ' (' + u.email + ')'));
+    
+    if (!tbody) {
+      console.error('No se encontró users-table-body');
+      return;
+    }
+    
     if (data.users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No hay usuarios registrados</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999; padding: 20px;">No hay usuarios registrados</td></tr>';
       return;
     }
     
@@ -1226,10 +1242,12 @@
 
   // ===== DASHBOARD =====
   function renderDirectorDashboard() {
+    loadData(); // Recargar datos primero
     const container = document.getElementById('directorDashboard');
     const totalUsers = data.users.length;
     const totalTasks = data.activities.length;
     const completedTasks = data.activities.filter(a => a.progress === 100).length;
+    const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     container.innerHTML = `
       <div class="admin-notice">
@@ -1249,7 +1267,7 @@
           <div class="metric-label">Completadas</div>
         </div>
         <div class="metric" style="cursor: pointer;" onclick="showProgressDetail()">
-          <div class="metric-value">${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%</div>
+          <div class="metric-value">${pct}%</div>
           <div class="metric-label">Progreso</div>
         </div>
       </div>
@@ -1258,6 +1276,7 @@
   }
 
   function showEmployeesDetail() {
+    loadData(); // Recargar datos
     const detail = document.getElementById('dashboardDetail');
     detail.innerHTML = `
       <div class="card">
@@ -1307,6 +1326,7 @@
   }
 
   function showCompletedDetail() {
+    loadData(); // Recargar datos
     const detail = document.getElementById('dashboardDetail');
     const completedTasks = data.activities.filter(a => a.progress === 100);
     
@@ -1334,11 +1354,13 @@
   }
 
   function showProgressDetail() {
+    loadData(); // Recargar datos
     const detail = document.getElementById('dashboardDetail');
     const totalTasks = data.activities.length;
     const completed = data.activities.filter(a => a.progress === 100).length;
     const inProgress = data.activities.filter(a => a.progress > 0 && a.progress < 100).length;
     const pending = data.activities.filter(a => a.progress === 0).length;
+    const pct = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
     
     detail.innerHTML = `
       <div class="card">
@@ -1347,8 +1369,8 @@
           <div style="margin-bottom: 20px;">
             <div style="font-weight: 600; margin-bottom: 8px;">Completadas: ${completed}/${totalTasks}</div>
             <div class="progress-bar" style="position: relative; height: 20px;">
-              <div class="progress-fill" style="width: ${totalTasks > 0 ? (completed / totalTasks) * 100 : 0}%; height: 100%;"></div>
-              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #000;">${totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0}%</div>
+              <div class="progress-fill" style="width: ${pct}%; height: 100%;"></div>
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #000;">${pct}%</div>
             </div>
           </div>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
@@ -1510,8 +1532,13 @@
           <div style="font-weight: 600; color: #000; margin-bottom: 8px;">🏪 ${v.store}</div>
           <div style="color: #333; margin-bottom: 8px;">${v.notes}</div>
           ${v.files && v.files.length > 0 ? `
-            <div class="file-preview">
-              ${v.files.map(f => `<div class="file-item">📎 ${f.name} (${(f.size / 1024).toFixed(0)}KB)</div>`).join('')}
+            <div style="background: #fff9e6; border: 1px solid #ffcc00; border-radius: 6px; padding: 8px; margin-top: 8px;">
+              <div style="font-weight: 500; font-size: 12px; margin-bottom: 6px;">📎 Archivos adjuntos:</div>
+              ${v.files.map(f => `
+                <div style="background: white; padding: 6px 8px; margin: 4px 0; border-radius: 4px; font-size: 11px; border-left: 3px solid #ffcc00;">
+                  📄 ${f.name} (${(f.size / 1024).toFixed(0)}KB)
+                </div>
+              `).join('')}
             </div>
           ` : ''}
           <div style="font-size: 11px; color: #666;">Fecha: ${v.date}</div>
@@ -1555,6 +1582,41 @@
     }
   }
 
+  // Listeners para preview de archivos
+  function setupFileListeners() {
+    const taskFilesInput = document.getElementById('taskFiles');
+    const visitFilesInput = document.getElementById('visitFiles');
+    
+    if (taskFilesInput) {
+      taskFilesInput.addEventListener('change', function() {
+        const preview = document.getElementById('taskFilesList');
+        if (preview) {
+          preview.innerHTML = Array.from(this.files).map((file, i) => `
+            <div class="file-item">
+              📎 ${file.name} <span style="color: #999;">(${(file.size / 1024).toFixed(0)}KB)</span>
+            </div>
+          `).join('');
+        }
+      });
+    }
+    
+    if (visitFilesInput) {
+      visitFilesInput.addEventListener('change', function() {
+        const preview = document.getElementById('visitFilesList');
+        if (preview) {
+          preview.innerHTML = Array.from(this.files).map((file, i) => `
+            <div class="file-item">
+              📎 ${file.name} <span style="color: #999;">(${(file.size / 1024).toFixed(0)}KB)</span>
+            </div>
+          `).join('');
+        }
+      });
+    }
+  }
+  
+  // Llamar después de que se carga la app
+  setTimeout(setupFileListeners, 500);
+  
   init();
 </script>
 </body>
