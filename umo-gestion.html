@@ -778,6 +778,36 @@
   };
   let chart = null;
 
+  function debugData() {
+    console.clear();
+    console.log('========== DEBUG UMO GESTIÓN ==========');
+    
+    const saved = localStorage.getItem('systemData');
+    console.log('1. Datos en localStorage:', saved ? '✅ Sí' : '❌ No');
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        console.log('2. JSON válido: ✅ Sí');
+        console.log('3. Usuarios en JSON:', parsed.users ? parsed.users.length : 0);
+        console.log('4. Lista de usuarios:');
+        if (parsed.users && parsed.users.length > 0) {
+          parsed.users.forEach((u, i) => {
+            console.log(`   ${i+1}. ${u.name} (${u.email}) - Rol: ${u.role}`);
+          });
+        } else {
+          console.log('   (vacío)');
+        }
+      } catch (e) {
+        console.log('2. JSON inválido: ❌', e.message);
+      }
+    }
+    
+    console.log('5. Variable data en memoria:', data.users ? data.users.length : 0, 'usuarios');
+    console.log('6. currentUser:', currentUser ? currentUser.name + ' (' + currentUser.role + ')' : 'Ninguno');
+    console.log('=====================================');
+  }
+
   function init() {
     console.log('Inicializando sistema...');
     loadData();
@@ -960,13 +990,15 @@
 
     console.log('Usuario logueado:', currentUser.name, '- Rol:', currentUser.role);
 
+    // Cargar dropdown de empleados para crear tarea
+    loadEmployeesForAdmin();
+
     // Solo Director puede ver el panel de usuarios
     if (currentUser.role === 'director') {
       document.getElementById('directorMenu').style.display = 'block';
       
       // Actualizar inmediatamente
       renderDirectorDashboard();
-      loadEmployeesForAdmin();
       renderUsersTable();
       
       // Actualizar tabla cada 1 segundo cuando estés en usuarios
@@ -1005,6 +1037,7 @@
     if (tab === 'dashboard') renderDashboard();
     if (tab === 'mis-tareas') renderMyTasks();
     if (tab === 'todas-tareas') renderAllTasks();
+    if (tab === 'crear-tarea') loadEmployeesForAdmin(); // Actualizar dropdown cuando abres crear tarea
     if (tab === 'usuarios') {
       console.log('Abriendo tab usuarios...');
       renderUsersTable();
@@ -1029,15 +1062,22 @@
 
   // ===== CREAR TAREA (todos) =====
   function loadEmployeesForAdmin() {
+    loadData(); // Recargar datos frescos
     const select = document.getElementById('taskAssignTo');
     select.innerHTML = '<option value="">Para mí</option>';
     
+    console.log('Cargando empleados. Total:', data.users.length);
+    
     data.users.forEach(user => {
+      // Mostrar TODOS los usuarios, no solo los que no sean admin
       const option = document.createElement('option');
       option.value = user.id;
-      option.textContent = `${user.name} (${user.area})`;
+      option.textContent = `${user.name} (${user.area}) - ${user.role}`;
       select.appendChild(option);
+      console.log('Agregado:', user.name);
     });
+    
+    console.log('✅ Dropdown de asignación actualizado');
   }
 
   function createTask() {
@@ -1059,8 +1099,15 @@
       return;
     }
 
+    // Si no asignas a nadie, es para ti
     const userId = assignTo ? parseInt(assignTo) : currentUser.id;
     const employee = data.users.find(u => u.id === userId);
+
+    if (!employee) {
+      alert('❌ Error: Usuario no encontrado');
+      console.error('Usuario con ID', userId, 'no encontrado');
+      return;
+    }
 
     // Capturar archivos
     const files = document.getElementById('taskFiles').files;
@@ -1074,7 +1121,7 @@
       });
     }
 
-    data.activities.push({
+    const newTask = {
       id: Date.now(),
       userId: userId,
       userName: employee.name,
@@ -1087,11 +1134,21 @@
       progress: 0,
       files: filesList,
       createdBy: currentUser.name,
+      assignedTo: employee.name, // Nuevo: registrar a quién se asignó
       created: new Date().toISOString()
-    });
+    };
 
+    data.activities.push(newTask);
     saveData();
     
+    console.log('✅ Tarea creada:', {
+      titulo: title,
+      asignadoA: employee.name,
+      creadoPor: currentUser.name,
+      prioridad: priority
+    });
+    
+    // Limpiar formulario
     document.getElementById('taskTitle').value = '';
     document.getElementById('taskDesc').value = '';
     document.getElementById('taskPriority').value = 'baja';
@@ -1102,9 +1159,14 @@
     document.getElementById('taskFiles').value = '';
     document.getElementById('taskFilesList').innerHTML = '';
 
-    alert(`✅ Tarea creada${assignTo ? ` para ${employee.name}` : ''}`);
+    alert(`✅ Tarea "${title}" asignada a ${employee.name}`);
+    
+    // Actualizar vistas
     renderMyTasks();
     renderDashboard();
+    if (currentUser.role === 'director') {
+      renderDirectorDashboard();
+    }
   }
 
   function renderMyTasks() {
@@ -1641,8 +1703,17 @@
     }
   }
 
-  // Listeners para preview de archivos
-  function setupFileListeners() {
+  // Listener para actualizar dropdown cuando abres crear tarea
+  document.addEventListener('DOMContentLoaded', function() {
+    const createTaskNav = document.querySelector('[onclick="changeTab(\'crear-tarea\')"]');
+    if (createTaskNav) {
+      createTaskNav.addEventListener('click', function() {
+        setTimeout(() => {
+          loadEmployeesForAdmin();
+        }, 100);
+      });
+    }
+  });
     const taskFilesInput = document.getElementById('taskFiles');
     const visitFilesInput = document.getElementById('visitFiles');
     
