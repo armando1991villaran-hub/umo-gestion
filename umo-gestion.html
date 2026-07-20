@@ -1016,8 +1016,9 @@
             📅 Inicio: ${task.startDate} | Entrega: ${task.dueDate}
           </div>
           <div style="font-size: 13px; color: #333; margin-bottom: 8px;">${task.desc}</div>
-          <div class="progress-bar">
+          <div class="progress-bar" style="position: relative;">
             <div class="progress-fill" style="width: ${task.progress}%"></div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #000; z-index: 10;">${task.progress}%</div>
           </div>
           <input type="range" min="0" max="100" value="${task.progress}" 
             onchange="updateProgress(${task.id}, this.value)" style="width: 100%; margin-top: 8px;">
@@ -1064,8 +1065,9 @@
             <div style="font-size: 11px; color: #999;">
               📅 ${task.startDate} → ${task.dueDate}
             </div>
-            <div class="progress-bar">
+            <div class="progress-bar" style="position: relative;">
               <div class="progress-fill" style="width: ${task.progress}%"></div>
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #000; z-index: 10;">${task.progress}%</div>
             </div>
           </div>
         `;
@@ -1113,6 +1115,11 @@
   // ===== PANEL DE USUARIOS =====
   function renderUsersTable() {
     const tbody = document.getElementById('users-table-body');
+    
+    if (data.users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">No hay usuarios registrados</td></tr>';
+      return;
+    }
     
     tbody.innerHTML = data.users.map(user => `
       <tr>
