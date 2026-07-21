@@ -227,8 +227,8 @@
     
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
       margin-bottom: 20px;
     }
     .metric {
@@ -420,6 +420,61 @@
       font-size: 11px;
     }
 
+    @media (max-width: 768px) {
+      .user-table {
+        font-size: 11px;
+      }
+      .user-table th {
+        padding: 8px;
+        font-size: 11px;
+      }
+      .user-table td {
+        padding: 8px;
+        font-size: 10px;
+      }
+      .btn-edit {
+        padding: 3px 6px;
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Convertir tabla a cards en móvil */
+      .user-table {
+        display: block;
+        border: none;
+      }
+      .user-table thead {
+        display: none;
+      }
+      .user-table tr {
+        display: block;
+        border: 2px solid #000;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        padding: 12px;
+        background: #f9f9f9;
+      }
+      .user-table td {
+        display: block;
+        padding: 6px 0;
+        border: none;
+        font-size: 12px;
+      }
+      .user-table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #000;
+        display: inline-block;
+        width: 80px;
+      }
+      .btn-edit {
+        width: 100%;
+        padding: 8px;
+        margin-top: 8px;
+      }
+    }
+
     .file-preview {
       background: #f5f5f5;
       border: 1px dashed #000;
@@ -437,8 +492,142 @@
     }
 
     @media (max-width: 768px) {
-      .sidebar { width: 70px; }
-      .main-content { margin-left: 70px; padding: 20px; }
+      .sidebar { 
+        width: 100%;
+        height: auto;
+        position: static;
+        padding: 12px;
+        overflow: hidden;
+      }
+      .main-content { 
+        margin-left: 0;
+        padding: 12px;
+      }
+      .header {
+        padding: 12px 16px;
+        margin-bottom: 16px;
+      }
+      .header h1 {
+        font-size: 20px;
+      }
+      .card {
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .card-title {
+        font-size: 16px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .metric {
+        padding: 16px;
+      }
+      .metric-value {
+        font-size: 28px;
+      }
+      .metric-label {
+        font-size: 12px;
+      }
+      .nav-item {
+        padding: 10px 12px;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .user-badge {
+        padding: 8px;
+        font-size: 11px;
+        margin-bottom: 12px;
+      }
+      .sidebar h2 {
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+      .activity-card {
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .activity-title {
+        font-size: 14px;
+      }
+      .form-group {
+        margin-bottom: 12px;
+      }
+      .form-group label {
+        font-size: 13px;
+      }
+      input, textarea, select {
+        padding: 8px 10px;
+        font-size: 14px;
+      }
+      button {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+      .chart-container {
+        height: 250px;
+      }
+      .user-table {
+        font-size: 11px;
+      }
+      .user-table th, .user-table td {
+        padding: 8px;
+        font-size: 11px;
+      }
+      .modal-content {
+        width: 95%;
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar {
+        width: 100%;
+        max-height: 100px;
+      }
+      .main-content {
+        padding: 8px;
+      }
+      .header {
+        padding: 10px;
+        margin-bottom: 12px;
+      }
+      .header h1 {
+        font-size: 18px;
+      }
+      .card {
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .metric {
+        padding: 12px;
+      }
+      .metric-value {
+        font-size: 24px;
+      }
+      .activity-card {
+        padding: 10px;
+      }
+      .activity-title {
+        font-size: 13px;
+      }
+      .activity-meta {
+        font-size: 11px;
+      }
+      .btn-primary {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+      .nav-item {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
     }
   </style>
 </head>
@@ -917,7 +1106,18 @@
     if (tab === 'mis-tareas') renderMyTasks();
     if (tab === 'todas-tareas') renderAllTasks();
     if (tab === 'crear-tarea') loadEmployeesForAdmin();
-    if (tab === 'usuarios') renderUsersTable();
+    if (tab === 'usuarios') {
+      renderUsersTable();
+      // Actualizar tabla cada 2 segundos cuando estés en usuarios
+      if (window.usersUpdateInterval) clearInterval(window.usersUpdateInterval);
+      window.usersUpdateInterval = setInterval(() => {
+        loadData();
+        renderUsersTable();
+      }, 2000);
+    } else {
+      // Detener actualización cuando salgas del tab
+      if (window.usersUpdateInterval) clearInterval(window.usersUpdateInterval);
+    }
   }
 
   function openModal(id) {
@@ -1139,11 +1339,11 @@
     
     tbody.innerHTML = data.users.map(user => `
       <tr>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${user.area}</td>
-        <td><strong>${user.role}</strong></td>
-        <td>
+        <td data-label="Nombre">${user.name}</td>
+        <td data-label="Email">${user.email}</td>
+        <td data-label="Área">${user.area}</td>
+        <td data-label="Rol"><strong>${user.role}</strong></td>
+        <td data-label="Cambiar">
           <select onchange="changeUserRole(${user.id}, this.value)" class="btn-edit" style="padding: 4px;">
             <option value="">Cambiar...</option>
             <option value="supervisor">Supervisor</option>
