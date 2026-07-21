@@ -1703,17 +1703,6 @@
     }
   }
 
-  // Listener para actualizar dropdown cuando abres crear tarea
-  document.addEventListener('DOMContentLoaded', function() {
-    const createTaskNav = document.querySelector('[onclick="changeTab(\'crear-tarea\')"]');
-    if (createTaskNav) {
-      createTaskNav.addEventListener('click', function() {
-        setTimeout(() => {
-          loadEmployeesForAdmin();
-        }, 100);
-      });
-    }
-  });
     const taskFilesInput = document.getElementById('taskFiles');
     const visitFilesInput = document.getElementById('visitFiles');
     
