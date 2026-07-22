@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Limpiar UMO Gestión</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #fff 0%, #f5f5f5 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      border: 2px solid #000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #000;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .section {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #000;
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      font-size: 16px;
+      color: #000;
+      margin-bottom: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: #000;
+      color: white;
+      border: 2px solid #000;
+    }
+    .btn-primary:hover {
+      background: #333;
+    }
+    .btn-danger {
+      background: #ff3333;
+      color: white;
+      border: 2px solid #ff3333;
+    }
+    .btn-danger:hover {
+      background: #cc0000;
+    }
+    .btn-secondary {
+      background: #666;
+      color: white;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-size: 13px;
+      display: none;
+    }
+    .success {
+      background: #ccffcc;
+      border: 1px solid #00cc00;
+      color: #006600;
+      display: block;
+    }
+    .error {
+      background: #ffcccc;
+      border: 1px solid #ff0000;
+      color: #cc0000;
+      display: block;
+    }
+    .info {
+      background: #e6f2ff;
+      border: 1px solid #0066ff;
+      color: #0066ff;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      color: #856404;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo">
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' style="width: 100px; height: 100px;">
+      <circle cx='100' cy='100' r='95' fill='none' stroke='#000' stroke-width='8'/>
+      <text x='100' y='120' font-size='50' font-weight='bold' text-anchor='middle' fill='#000'>UMO</text>
+    </svg>
+  </div>
+
+  <h1>Limpiar UMO Gestión</h1>
+
+  <div class="info">
+    ⚠️ Esta herramienta eliminará TODOS los datos almacenados (usuarios, tareas, visitas)
+  </div>
+
+  <div class="section">
+    <h2>Estado Actual</h2>
+    <button class="btn-primary" onclick="checkStatus()">Verificar Estado</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="section">
+    <h2>Limpiar Datos</h2>
+    <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+      Esto eliminará TODOS los usuarios, tareas y visitas. Esta acción NO se puede deshacer.
+    </p>
+    <button class="btn-danger" onclick="cleanAllData()">🗑️ LIMPIAR TODO</button>
+    <div id="cleanStatus"></div>
+  </div>
+
+  <div class="section">
+    <h2>Volver a la App</h2>
+    <button class="btn-secondary" onclick="window.location.href='umo-gestion.html'">← Regresar a UMO Gestión</button>
+  </div>
+
+  <div class="warning">
+    ✅ Después de limpiar, puedes:
+    <br/>1. Ir a UMO Gestión
+    <br/>2. Registrarte como nuevo usuario
+    <br/>3. Invitar a tu equipo a registrarse
+  </div>
+</div>
+
+<script>
+  function checkStatus() {
+    const div = document.getElementById('status');
+    try {
+      const data = localStorage.getItem('systemData');
+      
+      if (!data) {
+        div.innerHTML = '<div class="status error">❌ No hay datos almacenados</div>';
+        return;
+      }
+      
+      const parsed = JSON.parse(data);
+      const usuarios = parsed.users ? parsed.users.length : 0;
+      const tareas = parsed.activities ? parsed.activities.length : 0;
+      const visitas = parsed.visits ? parsed.visits.length : 0;
+      
+      div.innerHTML = `
+        <div class="status success">
+          ✅ Datos encontrados:
+          <br/>👥 Usuarios: ${usuarios}
+          <br/>📋 Tareas: ${tareas}
+          <br/>🏪 Visitas: ${visitas}
+        </div>
+      `;
+    } catch (e) {
+      div.innerHTML = '<div class="status error">❌ Error al leer datos: ' + e.message + '</div>';
+    }
+  }
+
+  function cleanAllData() {
+    const div = document.getElementById('cleanStatus');
+    
+    if (!confirm('⚠️ ¿Estás seguro? Esto eliminará TODOS los datos.')) {
+      return;
+    }
+    
+    if (!confirm('🚨 Esta acción NO se puede deshacer. ¿Confirmas?')) {
+      return;
+    }
+    
+    try {
+      localStorage.removeItem('systemData');
+      sessionStorage.removeItem('currentUser');
+      
+      div.innerHTML = `
+        <div class="status success">
+          ✅ Datos limpios exitosamente
+          <br/><br/>
+          El sistema está listo para usar. Puedes:
+          <br/>1. Recargar la página
+          <br/>2. Registrarte como administrador
+          <br/>3. Invitar a tu equipo
+        </div>
+      `;
+      
+      setTimeout(() => {
+        window.location.href = 'umo-gestion.html';
+      }, 2000);
+    } catch (e) {
+      div.innerHTML = '<div class="status error">❌ Error: ' + e.message + '</div>';
+    }
+  }
+</script>
+
+</body>
+</html>
