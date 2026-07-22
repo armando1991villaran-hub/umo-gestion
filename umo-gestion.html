@@ -275,30 +275,42 @@
     /* ===== PROGRESS BAR ===== */
     .progress-bar {
       width: 100%;
-      height: 4px;
-      background: #ddd;
-      border-radius: 2px;
+      height: 6px;
+      background: linear-gradient(90deg, #e0e0e0 0%, #f0f0f0 100%);
+      border-radius: 3px;
       overflow: hidden;
-      margin: 6px 0;
+      margin: 8px 0;
       position: relative;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
     }
 
     .progress-fill {
       height: 100%;
-      background: #000;
-      transition: width 0.3s;
+      background: linear-gradient(90deg, #000 0%, #333 100%);
+      transition: width 0.3s ease;
+      border-radius: 3px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.2);
     }
 
     .progress-fill.verde {
-      background: #00aa00;
+      background: linear-gradient(90deg, #00aa00 0%, #00dd00 100%);
+      box-shadow: 0 0 8px rgba(0, 170, 0, 0.4);
     }
 
     .progress-fill.amarillo {
-      background: #ffaa00;
+      background: linear-gradient(90deg, #ffaa00 0%, #ffcc00 100%);
+      box-shadow: 0 0 8px rgba(255, 170, 0, 0.4);
     }
 
     .progress-fill.rojo {
-      background: #ff3333;
+      background: linear-gradient(90deg, #ff3333 0%, #ff6666 100%);
+      box-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
+    }
+
+    .progress-text {
+      font-size: 12px;
+      font-weight: 600;
+      color: #000;
     }
 
     /* ===== BUTTONS ===== */
@@ -725,19 +737,19 @@
           <div class="card">
             <h2 class="card-title">📊 Mis Tareas</h2>
             <div class="grid">
-              <div class="metric" onclick="changeTab('mis-tareas')">
+              <div class="metric" onclick="changeTab('mis-tareas')" style="cursor: pointer;">
                 <div class="metric-value" id="total">0</div>
                 <div class="metric-label">Asignadas</div>
               </div>
-              <div class="metric">
+              <div class="metric" onclick="changeTab('mis-tareas')" style="cursor: pointer;">
                 <div class="metric-value" id="completed">0</div>
                 <div class="metric-label">Completadas</div>
               </div>
-              <div class="metric" onclick="changeTab('visitas')">
+              <div class="metric" onclick="changeTab('visitas')" style="cursor: pointer;">
                 <div class="metric-value" id="visits">0</div>
                 <div class="metric-label">Visitas</div>
               </div>
-              <div class="metric">
+              <div class="metric" onclick="changeTab('mis-tareas')" style="cursor: pointer;">
                 <div class="metric-value" id="progress">0%</div>
                 <div class="metric-label">Progreso</div>
               </div>
@@ -854,6 +866,11 @@
       <div class="form-group">
         <label>Observaciones</label>
         <textarea id="visitNotes" placeholder="Notas..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>📁 Fotos / Documentos</label>
+        <input type="file" id="visitFiles" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+        <div id="visitFilesList" style="margin-top: 8px;"></div>
       </div>
       <button class="btn-primary" onclick="saveVisit()">Guardar</button>
       <button class="btn-secondary" onclick="closeModal('visitModal')" style="margin-top: 8px;">Cancelar</button>
@@ -1005,6 +1022,14 @@
       document.getElementById('directorMenu').style.display = 'block';
       renderDirectorPanel();
       renderUsersTable();
+      
+      // Actualizar tabla cada 1 segundo en móvil también
+      if (window.usersRefresh) clearInterval(window.usersRefresh);
+      window.usersRefresh = setInterval(() => {
+        loadData();
+        renderUsersTable();
+        renderDirectorPanel();
+      }, 1000);
     }
 
     renderDashboard();
@@ -1136,15 +1161,28 @@
             <span class="badge badge-${task.priority}">${task.priority.toUpperCase()}</span>
             <span style="font-size: 11px;">📅 ${task.startDate} → ${task.dueDate}</span>
           </div>
-          <div style="margin-bottom: 8px; font-size: 12px;">${task.desc}</div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="margin-bottom: 12px; font-size: 12px;">${task.desc}</div>
+          
+          ${task.files && task.files.length > 0 ? `
+            <div style="background: #fff9e6; border: 1px solid #ffcc00; border-radius: 6px; padding: 8px; margin-bottom: 12px;">
+              <div style="font-weight: 500; font-size: 12px; margin-bottom: 6px;">📎 Archivos adjuntos:</div>
+              ${task.files.map(f => `
+                <div style="background: white; padding: 6px 8px; margin: 4px 0; border-radius: 4px; font-size: 11px; border-left: 3px solid #ffcc00;">
+                  📄 ${f.name} (${(f.size / 1024).toFixed(0)}KB)
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
             <div class="progress-bar" style="flex: 1;">
               <div class="progress-fill ${getProgressColor(task.progress)}" style="width: ${task.progress}%"></div>
             </div>
-            <div style="font-size: 11px; min-width: 35px; text-align: right;">${task.progress}%</div>
+            <div class="progress-text">${task.progress}%</div>
           </div>
+          
           <input type="range" min="0" max="100" value="${task.progress}" 
-            onchange="updateProgress(${task.id}, this.value)" style="width: 100%; margin-top: 6px;">
+            onchange="updateProgress(${task.id}, this.value)" style="width: 100%; cursor: pointer;">
         </div>
       `).join('');
   }
@@ -1199,6 +1237,16 @@
         <div class="activity">
           <div class="activity-title">🏪 ${v.store}</div>
           <div style="margin-bottom: 8px; font-size: 12px;">${v.notes}</div>
+          ${v.files && v.files.length > 0 ? `
+            <div style="background: #fff9e6; border: 1px solid #ffcc00; border-radius: 6px; padding: 8px; margin: 8px 0;">
+              <div style="font-weight: 500; font-size: 12px; margin-bottom: 6px;">📎 Archivos adjuntos:</div>
+              ${v.files.map(f => `
+                <div style="background: white; padding: 6px 8px; margin: 4px 0; border-radius: 4px; font-size: 11px; border-left: 3px solid #ffcc00;">
+                  📄 ${f.name} (${(f.size / 1024).toFixed(0)}KB)
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
           <div style="font-size: 11px; color: #666;">📅 ${v.date}</div>
         </div>
       `).join('');
@@ -1213,6 +1261,12 @@
       return;
     }
 
+    const files = document.getElementById('visitFiles').files;
+    const filesList = [];
+    for (let file of files) {
+      filesList.push({ name: file.name, type: file.type, size: file.size });
+    }
+
     data.visits.push({
       id: Date.now(),
       userId: currentUser.id,
@@ -1220,6 +1274,7 @@
       store: store,
       date: document.getElementById('visitDate').value,
       notes: notes,
+      files: filesList,
       created: new Date().toISOString()
     });
 
@@ -1228,6 +1283,8 @@
     document.getElementById('visitStore').value = '';
     document.getElementById('visitNotes').value = '';
     document.getElementById('visitDate').value = '';
+    document.getElementById('visitFiles').value = '';
+    document.getElementById('visitFilesList').innerHTML = '';
     renderVisits();
   }
 
@@ -1398,6 +1455,38 @@
     URL.revokeObjectURL(url);
     alert('✅ Backup descargado');
   }
+
+  // Setup file previews
+  setTimeout(() => {
+    const visitFilesInput = document.getElementById('visitFiles');
+    const taskFilesInput = document.getElementById('taskFiles');
+    
+    if (visitFilesInput) {
+      visitFilesInput.addEventListener('change', function() {
+        const preview = document.getElementById('visitFilesList');
+        if (preview) {
+          preview.innerHTML = Array.from(this.files).map(file => `
+            <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 6px; font-size: 12px;">
+              📎 ${file.name} <span style="color: #999;">(${(file.size / 1024).toFixed(0)}KB)</span>
+            </div>
+          `).join('');
+        }
+      });
+    }
+
+    if (taskFilesInput) {
+      taskFilesInput.addEventListener('change', function() {
+        const preview = document.getElementById('taskFilesList');
+        if (preview) {
+          preview.innerHTML = Array.from(this.files).map(file => `
+            <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; margin-top: 6px; font-size: 12px;">
+              📎 ${file.name} <span style="color: #999;">(${(file.size / 1024).toFixed(0)}KB)</span>
+            </div>
+          `).join('');
+        }
+      });
+    }
+  }, 500);
 
   init();
 </script>
